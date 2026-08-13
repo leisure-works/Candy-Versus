@@ -1,0 +1,91 @@
+{
+	"geode": "5.9.0",
+	"gd": {
+		"win": "2.2081",
+		"android": "2.2081",
+		"mac": "2.2081",
+		"ios": "2.2081"
+	},
+	"id": "neongd1667.candy-versus",
+	"name": "Candy Versus",
+	"version": "v1.0.0",
+	"developer": "NeonGD1667",
+	"description": "PvP mod in GD",
+	"dependencies": {
+		"geode.node-ids": {
+			"version": "v1.23.3",
+			"required": true ,
+			"platforms": ["win","android","mac","ios"]
+		}
+	},
+	"settings": {
+		"connection-title": {
+			"type": "title",
+			"name": "Connection"
+		},
+		"server-address": {
+			"type": "string",
+			"name": "Server Address",
+			"description": "Server address to connect to for versus mode",
+			"default": ""
+		},
+		"auto-reconnect": {
+			"type": "bool",
+			"name": "Auto Reconnect",
+			"description": "Automatically reconnect if connection is lost mid-match",
+			"default": true
+		},
+		"sync-interval-ms": {
+			"type": "int",
+			"name": "Sync Interval (ms)",
+			"description": "How often state sync packets are sent. Lower = smoother but more bandwidth",
+			"default": 50,
+			"min": 20,
+			"max": 200,
+			"control": {
+				"arrows": true,
+				"slider": true
+			}
+		},
+		"gameplay-title": {
+			"type": "title",
+			"name": "Gameplay"
+		},
+		"show-opponent-icon": {
+			"type": "bool",
+			"name": "Show Opponent Icon",
+			"description": "Show the opponent's player icon during matches",
+			"default": true
+		},
+		"opponent-icon-opacity": {
+			"type": "int",
+			"name": "Opponent Icon Opacity",
+			"default": 255,
+			"min": 50,
+			"max": 255,
+			"enable-if": "show-opponent-icon"
+		},
+		"toggle-versus-keybind": {
+			"type": "keybind",
+			"name": "Toggle Versus Menu",
+			"default": "Ctrl+G",
+			"category": "universal"
+		},
+		"debug-title": {
+			"type": "title",
+			"name": "Debug"
+		},
+		"enable-anticheat-logs": {
+			"type": "bool",
+			"name": "Log Anti-Cheat",
+			"description": "Log anti-cheat rejections and flagged events (debug only)",
+			"default": false
+		},
+		"enable-network-logs": {
+			"type": "bool",
+			"name": "Log Network Packets",
+			"description": "Log detailed sent/received packets (may slow down the game)",
+			"default": false
+		}
+	}
+}

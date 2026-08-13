@@ -387,6 +387,4 @@ Geometry Dash is a trademark of its respective owner.
 
 **Candy Versus v1.0.0**
 Developed by :
-**Homeless Team**
-**NeonGD1667**
-**all contributor**
+**Homeless Team** , **NeonGD1667** and **all contributor**

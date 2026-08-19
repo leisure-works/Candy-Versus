@@ -1,7 +1,7 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/ui/Popup.hpp>
-#include <Geode/ui/ListView.hpp>
+#include <Geode/ui/Scrollbar.hpp>
 
 using namespace geode::prelude;
 
@@ -11,7 +11,6 @@ struct FeaturedLevel {
     int eloReward;
 };
 
-// Đổi tên tránh trùng với GD's LevelCell (TableViewCell)
 class CVLevelCell : public CCLayer {
 protected:
     bool init(FeaturedLevel const& level) {
@@ -69,6 +68,8 @@ protected:
             {"Cataclysm", "Hard", 15},
             {"Athanatos", "Extreme Demon", 50},
             {"Fingerdash", "Harder", 10},
+            {"Deadlocked", "Insane", 20},
+            {"Clubstep", "Demon", 30},
         };
 
         auto listContent = CCLayer::create();
@@ -79,13 +80,22 @@ protected:
             listContent->addChild(cell);
             yOffset -= 42.f;
         }
-        listContent->setContentSize({320.f, -yOffset});
+        float totalHeight = std::max(-yOffset, 180.f);
+        listContent->setContentSize({320.f, totalHeight});
+        listContent->setAnchorPoint({0.f, 1.f});
+        listContent->setPositionY(totalHeight);
 
         auto scrollLayer = ScrollLayer::create({320.f, 180.f});
         scrollLayer->m_contentLayer->addChild(listContent);
-        scrollLayer->m_contentLayer->setContentSize(listContent->getContentSize());
+        scrollLayer->m_contentLayer->setContentSize({320.f, totalHeight});
         scrollLayer->setPosition({20.f, 40.f});
+        scrollLayer->setTouchEnabled(true);
         m_mainLayer->addChild(scrollLayer);
+
+        // Thanh scrollbar hiển thị + hỗ trợ kéo trên mobile
+        auto scrollbar = Scrollbar::create(scrollLayer);
+        scrollbar->setPosition({350.f, 40.f});
+        m_mainLayer->addChild(scrollbar);
 
         return true;
     }
@@ -109,7 +119,12 @@ class $modify(CandyVersusMenuLayer, MenuLayer) {
         auto menu = this->getChildByID("bottom-menu");
         if (!menu) return true;
 
-        auto spr = ButtonSprite::create("Daily");
+        // Nút tròn thay vì ButtonSprite chữ nhật
+        auto spr = CircleButtonSprite::create(
+            CCSprite::createWithSpriteFrameName("GJ_timeIcon_001.png"), // icon tạm, đổi sau
+            CircleBaseColor::Green,
+            CircleBaseSize::Medium
+        );
         auto btn = CCMenuItemSpriteExtra::create(
             spr, this, menu_selector(CandyVersusMenuLayer::onOpenFeatured)
         );

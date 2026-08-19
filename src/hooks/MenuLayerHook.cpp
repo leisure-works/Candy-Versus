@@ -11,7 +11,8 @@ struct FeaturedLevel {
     int eloReward;
 };
 
-class LevelCell : public CCLayer {
+// Đổi tên tránh trùng với GD's LevelCell (TableViewCell)
+class CVLevelCell : public CCLayer {
 protected:
     bool init(FeaturedLevel const& level) {
         if (!CCLayer::init()) return false;
@@ -44,8 +45,8 @@ protected:
     }
 
 public:
-    static LevelCell* create(FeaturedLevel const& level) {
-        auto ret = new LevelCell();
+    static CVLevelCell* create(FeaturedLevel const& level) {
+        auto ret = new CVLevelCell();
         if (ret->init(level)) {
             ret->autorelease();
             return ret;
@@ -63,7 +64,6 @@ protected:
 
         this->setTitle("Daily Featured Levels");
 
-        // Data giả lập — sau này thay bằng call API backend
         std::vector<FeaturedLevel> levels = {
             {"Bloodlust", "Demon", 25},
             {"Cataclysm", "Hard", 15},
@@ -74,7 +74,7 @@ protected:
         auto listContent = CCLayer::create();
         float yOffset = 0.f;
         for (auto const& lvl : levels) {
-            auto cell = LevelCell::create(lvl);
+            auto cell = CVLevelCell::create(lvl);
             cell->setPosition({0.f, yOffset});
             listContent->addChild(cell);
             yOffset -= 42.f;
@@ -124,4 +124,4 @@ class $modify(CandyVersusMenuLayer, MenuLayer) {
     void onOpenFeatured(CCObject*) {
         FeaturedLevelsPopup::create()->show();
     }
-};https://youtu.be/my-_gebRU8c  
+};

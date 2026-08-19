@@ -6,10 +6,10 @@
 		"mac": "2.2081",
 		"ios": "2.2081"
 	},
-	"id": "neongd1667.candy-versus",
+	"id": "homeless.candy-versus",
 	"name": "Candy Versus",
 	"version": "v1.0.0",
-	"developer": "NeonGD1667",
+	"developer": "Homeless Team ",
 	"description": "PvP mod in GD",
 	"dependencies": {
 		"geode.node-ids": {

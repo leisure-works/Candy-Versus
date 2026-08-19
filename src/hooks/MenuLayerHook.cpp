@@ -1,85 +1,98 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/ui/Popup.hpp>
+#include <Geode/ui/ListView.hpp>
 
 using namespace geode::prelude;
 
-class LoginPopup : public Popup {
+struct FeaturedLevel {
+    std::string name;
+    std::string difficulty;
+    int eloReward;
+};
+
+class LevelCell : public CCLayer {
 protected:
-    CCLabelBMFont* m_statusLabel = nullptr;
-    CCLabelBMFont* m_codeLabel = nullptr;
-    CCMenuItemSpriteExtra* m_generateBtn = nullptr;
-    bool m_waitingConfirm = false;
+    bool init(FeaturedLevel const& level) {
+        if (!CCLayer::init()) return false;
 
-    bool init() {
-        if (!Popup::init(320.f, 200.f))
-            return false;
+        this->setContentSize({320.f, 40.f});
 
-        this->setTitle("Candy Versus - Login");
+        auto nameLabel = CCLabelBMFont::create(level.name.c_str(), "bigFont.fnt");
+        nameLabel->setScale(0.5f);
+        nameLabel->setAnchorPoint({0.f, 0.5f});
+        nameLabel->setPosition({10.f, 28.f});
+        this->addChild(nameLabel);
 
-        m_statusLabel = CCLabelBMFont::create("Chua lien ket tai khoan", "chatFont.fnt");
-        m_statusLabel->setPosition(m_mainLayer->getContentSize().width / 2, 130.f);
-        m_statusLabel->setScale(0.7f);
-        m_mainLayer->addChild(m_statusLabel);
+        auto diffLabel = CCLabelBMFont::create(level.difficulty.c_str(), "chatFont.fnt");
+        diffLabel->setScale(0.6f);
+        diffLabel->setAnchorPoint({0.f, 0.5f});
+        diffLabel->setColor({255, 200, 0});
+        diffLabel->setPosition({10.f, 12.f});
+        this->addChild(diffLabel);
 
-        m_codeLabel = CCLabelBMFont::create("", "bigFont.fnt");
-        m_codeLabel->setPosition(m_mainLayer->getContentSize().width / 2, 90.f);
-        m_codeLabel->setVisible(false);
-        m_mainLayer->addChild(m_codeLabel);
-
-        auto genSpr = ButtonSprite::create("Generate Code");
-        m_generateBtn = CCMenuItemSpriteExtra::create(
-            genSpr, this, menu_selector(LoginPopup::onGenerateCode)
+        auto rewardLabel = CCLabelBMFont::create(
+            fmt::format("+{} Elo", level.eloReward).c_str(), "bigFont.fnt"
         );
-
-        auto menu = CCMenu::create();
-        menu->addChild(m_generateBtn);
-        menu->setPosition(m_mainLayer->getContentSize().width / 2, 45.f);
-        m_mainLayer->addChild(menu);
+        rewardLabel->setScale(0.5f);
+        rewardLabel->setAnchorPoint({1.f, 0.5f});
+        rewardLabel->setColor({0, 255, 100});
+        rewardLabel->setPosition({310.f, 20.f});
+        this->addChild(rewardLabel);
 
         return true;
     }
 
-    void onGenerateCode(CCObject*) {
-        if (m_waitingConfirm) return;
-        m_waitingConfirm = true;
-
-        // Giả lập tạo code random — sau này thay bằng call API thật
-        std::string fakeCode = generateFakeCode();
-
-        m_codeLabel->setString(fakeCode.c_str());
-        m_codeLabel->setVisible(true);
-
-        m_statusLabel->setString("Nhap code nay vao web de xac nhan...");
-        m_generateBtn->setVisible(false);
-
-        // Giả lập backend confirm sau 3 giây (test only)
-        this->runAction(CCSequence::create(
-            CCDelayTime::create(3.0f),
-            CCCallFunc::create(this, callfunc_selector(LoginPopup::onFakeConfirm)),
-            nullptr
-        ));
-    }
-
-    void onFakeConfirm() {
-        m_statusLabel->setString("Da lien ket! Chao mung, Player123");
-        m_codeLabel->setVisible(false);
-        m_waitingConfirm = false;
-    }
-
-    std::string generateFakeCode() {
-        static const char chars[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        std::string code;
-        srand(static_cast<unsigned>(time(nullptr)));
-        for (int i = 0; i < 6; i++) {
-            code += chars[rand() % (sizeof(chars) - 1)];
+public:
+    static LevelCell* create(FeaturedLevel const& level) {
+        auto ret = new LevelCell();
+        if (ret->init(level)) {
+            ret->autorelease();
+            return ret;
         }
-        return code;
+        delete ret;
+        return nullptr;
+    }
+};
+
+class FeaturedLevelsPopup : public Popup {
+protected:
+    bool init() {
+        if (!Popup::init(360.f, 260.f))
+            return false;
+
+        this->setTitle("Daily Featured Levels");
+
+        // Data giả lập — sau này thay bằng call API backend
+        std::vector<FeaturedLevel> levels = {
+            {"Bloodlust", "Demon", 25},
+            {"Cataclysm", "Hard", 15},
+            {"Athanatos", "Extreme Demon", 50},
+            {"Fingerdash", "Harder", 10},
+        };
+
+        auto listContent = CCLayer::create();
+        float yOffset = 0.f;
+        for (auto const& lvl : levels) {
+            auto cell = LevelCell::create(lvl);
+            cell->setPosition({0.f, yOffset});
+            listContent->addChild(cell);
+            yOffset -= 42.f;
+        }
+        listContent->setContentSize({320.f, -yOffset});
+
+        auto scrollLayer = ScrollLayer::create({320.f, 180.f});
+        scrollLayer->m_contentLayer->addChild(listContent);
+        scrollLayer->m_contentLayer->setContentSize(listContent->getContentSize());
+        scrollLayer->setPosition({20.f, 40.f});
+        m_mainLayer->addChild(scrollLayer);
+
+        return true;
     }
 
 public:
-    static LoginPopup* create() {
-        auto popup = new LoginPopup();
+    static FeaturedLevelsPopup* create() {
+        auto popup = new FeaturedLevelsPopup();
         if (popup->init()) {
             popup->autorelease();
             return popup;
@@ -93,20 +106,22 @@ class $modify(CandyVersusMenuLayer, MenuLayer) {
     bool init() {
         if (!MenuLayer::init()) return false;
 
-        auto btn = typeinfo_cast<CCMenuItemSpriteExtra*>(
-            this->getChildByIDRecursive("versus-button")
+        auto menu = this->getChildByID("bottom-menu");
+        if (!menu) return true;
+
+        auto spr = ButtonSprite::create("Daily");
+        auto btn = CCMenuItemSpriteExtra::create(
+            spr, this, menu_selector(CandyVersusMenuLayer::onOpenFeatured)
         );
+        btn->setID("candy-versus-daily-button"_spr);
 
-        if (!btn) return true;
-
-        btn->setSprite(CCSprite::createWithSpriteFrameName("GJ_versusBtn_001.png"));
-        btn->setScale(0.8f);
-        btn->setTarget(this, menu_selector(CandyVersusMenuLayer::onOpenCandyVersus));
+        static_cast<CCMenu*>(menu)->addChild(btn);
+        menu->updateLayout();
 
         return true;
     }
 
-    void onOpenCandyVersus(CCObject*) {
-        LoginPopup::create()->show();
+    void onOpenFeatured(CCObject*) {
+        FeaturedLevelsPopup::create()->show();
     }
-};
+};https://youtu.be/my-_gebRU8c  

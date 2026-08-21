@@ -11,6 +11,7 @@ struct FeaturedLevel {
     int eloReward;
 };
 
+// Đổi tên tránh trùng với GD's LevelCell (TableViewCell)
 class CVLevelCell : public CCLayer {
 protected:
     bool init(FeaturedLevel const& level) {
@@ -85,16 +86,24 @@ protected:
         listContent->setAnchorPoint({0.f, 1.f});
         listContent->setPositionY(totalHeight);
 
-        auto scrollLayer = ScrollLayer::create({320.f, 180.f});
+        constexpr float scrollWidth = 320.f;
+        constexpr float scrollHeight = 180.f;
+        constexpr float scrollX = 20.f;
+        constexpr float scrollY = 40.f;
+
+        auto scrollLayer = ScrollLayer::create({scrollWidth, scrollHeight});
         scrollLayer->m_contentLayer->addChild(listContent);
-        scrollLayer->m_contentLayer->setContentSize({320.f, totalHeight});
-        scrollLayer->setPosition({20.f, 40.f});
+        scrollLayer->m_contentLayer->setContentSize({scrollWidth, totalHeight});
+        scrollLayer->setPosition({scrollX, scrollY});
         scrollLayer->setTouchEnabled(true);
         m_mainLayer->addChild(scrollLayer);
 
-        // Thanh scrollbar hiển thị + hỗ trợ kéo trên mobile
+        // Scrollbar — neo theo đỉnh của scrollLayer và ép chiều cao khớp
+        // để không tràn ra ngoài khung bo tròn của popup.
         auto scrollbar = Scrollbar::create(scrollLayer);
-        scrollbar->setPosition({350.f, 40.f});
+        scrollbar->setAnchorPoint({0.5f, 1.f});
+        scrollbar->setPosition({scrollX + scrollWidth + 10.f, scrollY + scrollHeight});
+        scrollbar->setContentSize({scrollbar->getContentSize().width, scrollHeight});
         m_mainLayer->addChild(scrollbar);
 
         return true;
@@ -119,9 +128,8 @@ class $modify(CandyVersusMenuLayer, MenuLayer) {
         auto menu = this->getChildByID("bottom-menu");
         if (!menu) return true;
 
-        // Nút tròn thay vì ButtonSprite chữ nhật
         auto spr = CircleButtonSprite::create(
-            CCSprite::createWithSpriteFrameName("GJ_timeIcon_001.png"), // icon tạm, đổi sau
+            CCSprite::createWithSpriteFrameName("GJ_timeIcon_001.png"),
             CircleBaseColor::Green,
             CircleBaseSize::Medium
         );

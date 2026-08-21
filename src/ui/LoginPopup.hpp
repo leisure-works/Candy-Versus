@@ -2,6 +2,7 @@
 #include <Geode/Geode.hpp>
 #include <Geode/ui/Popup.hpp>
 #include <Geode/ui/TextInput.hpp>
+#include <Geode/utils/web.hpp>
 
 using namespace geode::prelude;
 
@@ -10,6 +11,12 @@ protected:
     TextInput* m_usernameInput = nullptr;
     TextInput* m_passwordInput = nullptr;
     CCLabelBMFont* m_statusLabel = nullptr;
+    CCMenuItemSpriteExtra* m_loginBtn = nullptr;
+    EventListener<web::WebTask> m_loginListener;
+
+    static constexpr auto SUPABASE_URL = "https://vwsmthfwhwzzlqtzsjvp.supabase.co";
+    static constexpr auto SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3c210aGZ3aHd6emxxdHpzanZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzcwNzIsImV4cCI6MjEwMjcxMzA3Mn0.Whzscv-OuixVRBpplx1_t_73hnLdv9ktEylUxEsOC3c";
 
     bool init() {
         if (!Popup::init(320.f, 220.f))
@@ -32,7 +39,7 @@ protected:
         m_mainLayer->addChild(m_statusLabel);
 
         auto loginSpr = ButtonSprite::create("Login");
-        auto loginBtn = CCMenuItemSpriteExtra::create(
+        m_loginBtn = CCMenuItemSpriteExtra::create(
             loginSpr, this, menu_selector(LoginPopup::onLogin)
         );
 
@@ -42,11 +49,16 @@ protected:
         m_mainLayer->addChild(registerLabel);
 
         auto menu = CCMenu::create();
-        menu->addChild(loginBtn);
+        menu->addChild(m_loginBtn);
         menu->setPosition(m_mainLayer->getContentSize().width / 2, 45.f);
         m_mainLayer->addChild(menu);
 
         return true;
+    }
+
+    void setLoading(bool loading) {
+        m_loginBtn->setEnabled(!loading);
+        m_loginBtn->setOpacity(loading ? 120 : 255);
     }
 
     void onLogin(CCObject*) {
@@ -58,9 +70,67 @@ protected:
             return;
         }
 
-        // Giả lập login thành công — chưa gọi backend thật
+        m_statusLabel->setString("Dang dang nhap...");
+        setLoading(true);
+
+        matjson::Value body;
+        body["username"] = username;
+        body["password"] = password;
+
+        auto req = web::WebRequest();
+        req.header("Content-Type", "application/json");
+        req.header("apikey", SUPABASE_ANON_KEY);
+        req.header("Authorization", std::string("Bearer ") + SUPABASE_ANON_KEY);
+        req.bodyJSON(body);
+
+        m_loginListener.bind(this, &LoginPopup::onLoginResponse);
+        m_loginListener.setFilter(
+            req.post(std::string(SUPABASE_URL) + "/functions/v1/login")
+        );
+    }
+
+    void onLoginResponse(web::WebTask::Event* e) {
+        auto res = e->getValue();
+        if (!res) return; // request chưa xong (progress event), bỏ qua
+
+        setLoading(false);
+
+        auto json = res->json().unwrapOr(matjson::Value());
+
+        if (!res->ok()) {
+            std::string errMsg = json.contains("error")
+                ? json["error"].asString().unwrapOr("Loi khong xac dinh")
+                : "Loi ket noi server";
+            m_statusLabel->setString(errMsg.c_str());
+            return;
+        }
+
+        std::string token = json["token"].asString().unwrapOr("");
+        std::string username = json["username"].asString().unwrapOr("");
+        int elo = static_cast<int>(json["elo"].asInt().unwrapOr(0));
+
+        if (token.empty()) {
+            m_statusLabel->setString("Dang nhap that bai!");
+            return;
+        }
+
         m_statusLabel->setString(("Xin chao, " + username + "!").c_str());
-        log::info("Fake login: username={}", username);
+        log::info("Login success: {} (Elo: {})", username, elo);
+
+        // TODO: CandyVersusSession::get()->setLoggedIn(username, elo, token);
+
+        // Tự đóng popup sau 1 giây để user kịp thấy thông báo thành công.
+        // Dùng removeFromParentAndCleanup trực tiếp thay vì gọi API riêng
+        // của Popup base (tên hàm đóng có thể khác nhau giữa các version Geode).
+        this->runAction(CCSequence::create(
+            CCDelayTime::create(1.0f),
+            CCCallFunc::create(this, callfunc_selector(LoginPopup::forceClose)),
+            nullptr
+        ));
+    }
+
+    void forceClose() {
+        this->removeFromParentAndCleanup(true);
     }
 
 public:
@@ -73,4 +143,4 @@ public:
         delete popup;
         return nullptr;
     }
-}; 
+};

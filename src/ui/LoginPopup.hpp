@@ -85,25 +85,21 @@ protected:
         req.bodyJSON(body);
 
         // API mới (Geode v5): dùng async::TaskHolder thay cho EventListener<web::WebTask>
+        // Callback nhận WebResponse theo giá trị (move), không phải con trỏ
         m_loginListener.spawn(
             req.post(std::string(SUPABASE_URL) + "/functions/v1/login"),
-            [this](web::WebResponse* res) {
-                this->onLoginResponse(res);
+            [this](web::WebResponse res) {
+                this->onLoginResponse(std::move(res));
             }
         );
     }
 
-    void onLoginResponse(web::WebResponse* res) {
+    void onLoginResponse(web::WebResponse res) {
         setLoading(false);
 
-        if (!res) {
-            m_statusLabel->setString("Loi ket noi server!");
-            return;
-        }
+        auto json = res.json().unwrapOr(matjson::Value());
 
-        auto json = res->json().unwrapOr(matjson::Value());
-
-        if (!res->ok()) {
+        if (!res.ok()) {
             std::string errMsg = json.contains("error")
                 ? json["error"].asString().unwrapOr("Loi khong xac dinh")
                 : "Loi ket noi server";

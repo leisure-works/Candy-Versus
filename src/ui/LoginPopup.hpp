@@ -3,6 +3,7 @@
 #include <Geode/ui/Popup.hpp>
 #include <Geode/ui/TextInput.hpp>
 #include <Geode/utils/web.hpp>
+#include <Geode/utils/async.hpp>
 
 using namespace geode::prelude;
 
@@ -12,7 +13,7 @@ protected:
     TextInput* m_passwordInput = nullptr;
     CCLabelBMFont* m_statusLabel = nullptr;
     CCMenuItemSpriteExtra* m_loginBtn = nullptr;
-    EventListener<web::WebTask> m_loginListener;
+    async::TaskHolder<web::WebResponse> m_loginListener;
 
     static constexpr auto SUPABASE_URL = "https://vwsmthfwhwzzlqtzsjvp.supabase.co";
     static constexpr auto SUPABASE_ANON_KEY =
@@ -83,17 +84,22 @@ protected:
         req.header("Authorization", std::string("Bearer ") + SUPABASE_ANON_KEY);
         req.bodyJSON(body);
 
-        m_loginListener.bind(this, &LoginPopup::onLoginResponse);
-        m_loginListener.setFilter(
-            req.post(std::string(SUPABASE_URL) + "/functions/v1/login")
+        // API mới (Geode v5): dùng async::TaskHolder thay cho EventListener<web::WebTask>
+        m_loginListener.spawn(
+            req.post(std::string(SUPABASE_URL) + "/functions/v1/login"),
+            [this](web::WebResponse* res) {
+                this->onLoginResponse(res);
+            }
         );
     }
 
-    void onLoginResponse(web::WebTask::Event* e) {
-        auto res = e->getValue();
-        if (!res) return; // request chưa xong (progress event), bỏ qua
-
+    void onLoginResponse(web::WebResponse* res) {
         setLoading(false);
+
+        if (!res) {
+            m_statusLabel->setString("Loi ket noi server!");
+            return;
+        }
 
         auto json = res->json().unwrapOr(matjson::Value());
 
@@ -119,9 +125,6 @@ protected:
 
         // TODO: CandyVersusSession::get()->setLoggedIn(username, elo, token);
 
-        // Tự đóng popup sau 1 giây để user kịp thấy thông báo thành công.
-        // Dùng removeFromParentAndCleanup trực tiếp thay vì gọi API riêng
-        // của Popup base (tên hàm đóng có thể khác nhau giữa các version Geode).
         this->runAction(CCSequence::create(
             CCDelayTime::create(1.0f),
             CCCallFunc::create(this, callfunc_selector(LoginPopup::forceClose)),

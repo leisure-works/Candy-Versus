@@ -4,6 +4,8 @@
 #include <Geode/ui/TextInput.hpp>
 #include <Geode/utils/web.hpp>
 #include <Geode/utils/async.hpp>
+#include "LobbyLayer.hpp"
+#include "../CandyVersusSession.hpp"
 
 using namespace geode::prelude;
 
@@ -84,8 +86,6 @@ protected:
         req.header("Authorization", std::string("Bearer ") + SUPABASE_ANON_KEY);
         req.bodyJSON(body);
 
-        // API mới (Geode v5): dùng async::TaskHolder thay cho EventListener<web::WebTask>
-        // Callback nhận WebResponse theo giá trị (move), không phải con trỏ
         m_loginListener.spawn(
             req.post(std::string(SUPABASE_URL) + "/functions/v1/login"),
             [this](web::WebResponse res) {
@@ -119,13 +119,21 @@ protected:
         m_statusLabel->setString(("Xin chao, " + username + "!").c_str());
         log::info("Login success: {} (Elo: {})", username, elo);
 
-        // TODO: CandyVersusSession::get()->setLoggedIn(username, elo, token);
+        CandyVersusSession::get()->setLoggedIn(username, elo);
 
         this->runAction(CCSequence::create(
             CCDelayTime::create(1.0f),
-            CCCallFunc::create(this, callfunc_selector(LoginPopup::forceClose)),
+            CCCallFunc::create(this, callfunc_selector(LoginPopup::goToLobby)),
             nullptr
         ));
+    }
+
+    void goToLobby() {
+        this->forceClose();
+
+        CCDirector::sharedDirector()->replaceScene(
+            CCTransitionFade::create(0.5f, LobbyLayer::scene())
+        );
     }
 
     void forceClose() {

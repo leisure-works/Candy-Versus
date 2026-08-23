@@ -119,7 +119,7 @@ protected:
         m_statusLabel->setString(("Xin chao, " + username + "!").c_str());
         log::info("Login success: {} (Elo: {})", username, elo);
 
-        CandyVersusSession::get()->setLoggedIn(username, elo);
+        CandyVersusSession::get()->setLoggedIn(username, elo, token);
 
         this->runAction(CCSequence::create(
             CCDelayTime::create(1.0f),

@@ -1,6 +1,8 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
 #include "../ui/LoginPopup.hpp"
+#include "../ui/LobbyLayer.hpp"
+#include "../CandyVersusSession.hpp"
 
 using namespace geode::prelude;
 
@@ -17,8 +19,6 @@ class $modify(CandyVersusCreatorLayer, CreatorLayer) {
             return true;
         }
 
-        log::info("versus-button FOUND, applying changes...");
-
         btn->setSprite(CCSprite::createWithSpriteFrameName("GJ_versusBtn_001.png"));
         btn->setScale(0.8f);
         btn->setTarget(this, menu_selector(CandyVersusCreatorLayer::onOpenCandyVersus));
@@ -27,6 +27,14 @@ class $modify(CandyVersusCreatorLayer, CreatorLayer) {
     }
 
     void onOpenCandyVersus(CCObject*) {
+        // Đã login từ trước (cùng session) → vào thẳng Lobby, không hỏi lại
+        if (CandyVersusSession::get()->isLoggedIn()) {
+            CCDirector::sharedDirector()->replaceScene(
+                CCTransitionFade::create(0.5f, LobbyLayer::scene())
+            );
+            return;
+        }
+
         LoginPopup::create()->show();
     }
-}; 
+};

@@ -3,7 +3,7 @@
 void MatchLevelLoader::loadAndEnter(int64_t levelId) {
     auto loader = new MatchLevelLoader();
     GameLevelManager::sharedState()->m_levelDownloadDelegate = loader;
-    GameLevelManager::sharedState()->downloadLevel(static_cast<int>(levelId), false);
+    GameLevelManager::sharedState()->downloadLevel(static_cast<int>(levelId), false, -1);
 }
 
 void MatchLevelLoader::levelDownloadFinished(GJGameLevel* level) {

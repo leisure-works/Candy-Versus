@@ -13,9 +13,17 @@ bool LobbyLayer::init() {
     }
 
     auto winSize = CCDirector::sharedDirector()->getWinSize();
+    CCPoint center = {winSize.width / 2, winSize.height / 2};
 
     auto bg = CCLayerColor::create({20, 20, 30, 255});
     this->addChild(bg);
+
+    // Panel nền cho khung nội dung, dùng sprite 9-slice chuẩn của GD
+    auto panel = CCScale9Sprite::create("GJ_square01.png");
+    panel->setContentSize({340.f, 220.f});
+    panel->setPosition(center);
+    panel->setOpacity(230);
+    this->addChild(panel);
 
     std::string username = CandyVersusSession::get()->getUsername();
     int elo = CandyVersusSession::get()->getElo();
@@ -23,36 +31,43 @@ bool LobbyLayer::init() {
     auto greeting = CCLabelBMFont::create(
         ("Chao mung, " + username + "!").c_str(), "bigFont.fnt"
     );
-    greeting->setPosition({winSize.width / 2, winSize.height / 2 + 60.f});
+    greeting->setScale(0.75f);
+    greeting->setPosition({center.x, center.y + 75.f});
     this->addChild(greeting);
 
     auto eloLabel = CCLabelBMFont::create(
         fmt::format("Elo: {}", elo).c_str(), "chatFont.fnt"
     );
     eloLabel->setScale(0.8f);
-    eloLabel->setPosition({winSize.width / 2, winSize.height / 2 + 25.f});
+    eloLabel->setPosition({center.x, center.y + 40.f});
     this->addChild(eloLabel);
 
-    m_queueStatusLabel = CCLabelBMFont::create("", "chatFont.fnt");
-    m_queueStatusLabel->setScale(0.7f);
-    m_queueStatusLabel->setPosition({winSize.width / 2, winSize.height / 2 - 20.f});
+    auto divider = CCLayerColor::create({255, 255, 255, 60}, 280.f, 1.f);
+    divider->setPosition({center.x - 140.f, center.y + 15.f});
+    this->addChild(divider);
+
+    m_queueStatusLabel = CCLabelBMFont::create("San sang thi dau!", "chatFont.fnt");
+    m_queueStatusLabel->setScale(0.65f);
+    m_queueStatusLabel->setColor({180, 180, 200});
+    m_queueStatusLabel->setPosition({center.x, center.y - 15.f});
     this->addChild(m_queueStatusLabel);
 
     auto quickMatchSpr = ButtonSprite::create("Quick Match");
     m_quickMatchBtn = CCMenuItemSpriteExtra::create(
         quickMatchSpr, this, menu_selector(LobbyLayer::onQuickMatch)
     );
+    m_quickMatchMenu = CCMenu::create(m_quickMatchBtn, nullptr);
+    m_quickMatchMenu->setPosition({center.x, center.y - 65.f});
+    this->addChild(m_quickMatchMenu);
 
     auto cancelSpr = ButtonSprite::create("Cancel");
     m_cancelBtn = CCMenuItemSpriteExtra::create(
         cancelSpr, this, menu_selector(LobbyLayer::onCancelQueue)
     );
-    m_cancelBtn->setVisible(false);
-
-    auto actionMenu = CCMenu::create(m_quickMatchBtn, m_cancelBtn, nullptr);
-    actionMenu->setPosition({winSize.width / 2, winSize.height / 2 - 60.f});
-    actionMenu->alignItemsHorizontallyWithPadding(10.f);
-    this->addChild(actionMenu);
+    m_cancelMenu = CCMenu::create(m_cancelBtn, nullptr);
+    m_cancelMenu->setPosition({center.x, center.y - 65.f});
+    m_cancelMenu->setVisible(false);
+    this->addChild(m_cancelMenu);
 
     auto backBtn = CCMenuItemSpriteExtra::create(
         CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png"),
@@ -75,7 +90,7 @@ web::WebRequest LobbyLayer::buildAuthedRequest() {
 }
 
 void LobbyLayer::onQuickMatch(CCObject*) {
-    m_quickMatchBtn->setVisible(false);
+    m_quickMatchMenu->setVisible(false);
     m_queueStatusLabel->setString("Dang vao hang doi...");
 
     m_actionListener.spawn(
@@ -89,7 +104,7 @@ void LobbyLayer::onQuickMatch(CCObject*) {
 void LobbyLayer::onJoinQueueResponse(web::WebResponse res) {
     if (!res.ok()) {
         m_queueStatusLabel->setString("Loi khi vao hang doi!");
-        m_quickMatchBtn->setVisible(true);
+        m_quickMatchMenu->setVisible(true);
         return;
     }
 
@@ -104,7 +119,7 @@ void LobbyLayer::onJoinQueueResponse(web::WebResponse res) {
     }
 
     m_queueStatusLabel->setString("Dang tim doi thu...");
-    m_cancelBtn->setVisible(true);
+    m_cancelMenu->setVisible(true);
 
     this->schedule(schedule_selector(LobbyLayer::pollFindMatch), 2.5f);
 }
@@ -152,15 +167,15 @@ void LobbyLayer::onCancelQueue(CCObject*) {
     m_actionListener.spawn(
         buildAuthedRequest().post(std::string(SupabaseConfig::URL) + "/rest/v1/rpc/leave_queue"),
         [this](web::WebResponse res) {
-            m_queueStatusLabel->setString("");
+            m_queueStatusLabel->setString("San sang thi dau!");
             resetQueueUI();
         }
     );
 }
 
 void LobbyLayer::resetQueueUI() {
-    m_quickMatchBtn->setVisible(true);
-    m_cancelBtn->setVisible(false);
+    m_quickMatchMenu->setVisible(true);
+    m_cancelMenu->setVisible(false);
 }
 
 void LobbyLayer::onMatchFound(std::string const& matchId, int64_t levelId) {

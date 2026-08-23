@@ -9,6 +9,8 @@ class LobbyLayer : public CCLayer {
 protected:
     CCMenuItemSpriteExtra* m_quickMatchBtn = nullptr;
     CCMenuItemSpriteExtra* m_cancelBtn = nullptr;
+    CCMenu* m_quickMatchMenu = nullptr;
+    CCMenu* m_cancelMenu = nullptr;
     CCLabelBMFont* m_queueStatusLabel = nullptr;
 
     async::TaskHolder<web::WebResponse> m_actionListener;
